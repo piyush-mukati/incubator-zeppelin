@@ -47,6 +47,24 @@ fi
 
 . "${bin}/common.sh"
 
+INTERPRETER_ID=$(basename "${INTERPRETER_DIR}")
+
+
+if [[ -z "${ZEPPELIN_INTP_MEM}" ]]; then
+  export ZEPPELIN_INTP_MEM="${ZEPPELIN_INTP_DEFAULT_MEM}"
+fi
+
+INTERPRETER_SPECIFIC_MEM_VARIABLE=`echo $INTERPRETER_ID | awk '{print toupper($0)"_INTP_MEM" }'`
+if [[ -n "${!INTERPRETER_SPECIFIC_MEM_VARIABLE}" ]]; then
+  export ZEPPELIN_INTP_MEM="${!INTERPRETER_SPECIFIC_MEM_VARIABLE}"
+fi
+
+
+if [[ -z "${ZEPPELIN_INTP_MEM}" ]]; then
+  export ZEPPELIN_INTP_MEM="${ZEPPELIN_MEM}"
+fi
+
+
 ZEPPELIN_CLASSPATH+=":${ZEPPELIN_CONF_DIR}"
 
 # construct classpath
@@ -60,10 +78,9 @@ addJarInDir "${INTERPRETER_DIR}"
 HOSTNAME=$(hostname)
 ZEPPELIN_SERVER=org.apache.zeppelin.interpreter.remote.RemoteInterpreterServer
 
-INTERPRETER_ID=$(basename "${INTERPRETER_DIR}")
 ZEPPELIN_PID="${ZEPPELIN_PID_DIR}/zeppelin-interpreter-${INTERPRETER_ID}-${ZEPPELIN_IDENT_STRING}-${HOSTNAME}.pid"
 ZEPPELIN_LOGFILE="${ZEPPELIN_LOG_DIR}/zeppelin-interpreter-${INTERPRETER_ID}-${ZEPPELIN_IDENT_STRING}-${HOSTNAME}.log"
-JAVA_INTP_OPTS+=" -Dzeppelin.log.file=${ZEPPELIN_LOGFILE}"
+JAVA_INTP_OPTS+=" -Dzeppelin.log.file=${ZEPPELIN_LOGFILE} ${ZEPPELIN_INTP_MEM}"
 
 if [[ ! -d "${ZEPPELIN_LOG_DIR}" ]]; then
   echo "Log dir doesn't exist, create ${ZEPPELIN_LOG_DIR}"
@@ -79,7 +96,7 @@ if [[ "${INTERPRETER_ID}" == "spark" ]]; then
     ZEPPELIN_CLASSPATH=${SPARK_APP_JAR}
 
     export PYTHONPATH="$SPARK_HOME/python/:$PYTHONPATH"
-    export PYTHONPATH="$SPARK_HOME/python/lib/py4j-0.8.2.1-src.zip:$PYTHONPATH"    
+    export PYTHONPATH="$SPARK_HOME/python/lib/py4j-0.8.2.1-src.zip:$PYTHONPATH"
   else
     # add Hadoop jars into classpath
     if [[ -n "${HADOOP_HOME}" ]]; then
