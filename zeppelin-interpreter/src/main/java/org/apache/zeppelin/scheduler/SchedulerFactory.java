@@ -87,6 +87,17 @@ public class SchedulerFactory implements SchedulerListener {
     }
   }
 
+  public Scheduler createOrGetParallelNotebookScheduler(String name, int maxConcurrency) {
+    synchronized (schedulers) {
+      if (schedulers.containsKey(name) == false) {
+        Scheduler s = new ParallelNotebookScheduler(name, executor, this, maxConcurrency);
+        schedulers.put(name, s);
+        executor.execute(s);
+      }
+      return schedulers.get(name);
+    }
+  }
+
   public Scheduler createOrGetRemoteScheduler(
       String name,
       RemoteInterpreterProcess interpreterProcess,

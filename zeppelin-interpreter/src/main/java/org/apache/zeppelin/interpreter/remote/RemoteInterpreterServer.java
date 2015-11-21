@@ -214,7 +214,8 @@ public class RemoteInterpreterServer
         JobProgressPoller.DEFAULT_INTERVAL_MSEC,
         intp,
         st,
-        context);
+        context,
+        interpreterContext.noteId);
 
     scheduler.submit(job);
 
@@ -261,6 +262,20 @@ public class RemoteInterpreterServer
     private Interpreter interpreter;
     private String script;
     private InterpreterContext context;
+    public InterpretJob(
+        String jobId,
+        String jobName,
+        JobListener listener,
+        long progressUpdateIntervalMsec,
+        Interpreter interpreter,
+        String script,
+      InterpreterContext context,
+      String parentName) {
+      super(jobId, jobName, listener, progressUpdateIntervalMsec, parentName);
+      this.interpreter = interpreter;
+      this.script = script;
+      this.context = context;
+    }
 
     public InterpretJob(
         String jobId,
@@ -270,10 +285,8 @@ public class RemoteInterpreterServer
         Interpreter interpreter,
         String script,
         InterpreterContext context) {
-      super(jobId, jobName, listener, progressUpdateIntervalMsec);
-      this.interpreter = interpreter;
-      this.script = script;
-      this.context = context;
+      this(jobId, jobName, listener, progressUpdateIntervalMsec, interpreter, script,
+        context, null);
     }
 
     @Override

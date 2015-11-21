@@ -54,6 +54,7 @@ public abstract class Job {
   public static enum Status {
     READY,
     PENDING,
+    QUEUED,
     RUNNING,
     FINISHED,
     ERROR,
@@ -69,9 +70,14 @@ public abstract class Job {
     boolean isPending() {
       return this == PENDING;
     }
+
+    boolean isQueued() {
+      return this == QUEUED;
+    }
   }
 
   private String jobName;
+  private String parentName = null;
   String id;
   Object result;
   Date dateCreated;
@@ -87,8 +93,15 @@ public abstract class Job {
   private long progressUpdateIntervalMs;
 
   public Job(String jobName, JobListener listener, long progressUpdateIntervalMs) {
+    this(jobName, listener, progressUpdateIntervalMs, null);
+  }
+
+  public Job(String jobName, JobListener listener, long progressUpdateIntervalMs,
+             String parentName) {
     this.jobName = jobName;
+    this.parentName = parentName;
     this.listener = listener;
+
     this.progressUpdateIntervalMs = progressUpdateIntervalMs;
 
     dateCreated = new Date();
@@ -99,11 +112,21 @@ public abstract class Job {
   }
 
   public Job(String jobName, JobListener listener) {
-    this(jobName, listener, JobProgressPoller.DEFAULT_INTERVAL_MSEC);
+    this(jobName, listener, JobProgressPoller.DEFAULT_INTERVAL_MSEC, null);
+  }
+
+  public Job(String jobName, JobListener listener, String parentName) {
+    this(jobName, listener, JobProgressPoller.DEFAULT_INTERVAL_MSEC, parentName);
   }
 
   public Job(String jobId, String jobName, JobListener listener, long progressUpdateIntervalMs) {
+    this(jobId, jobName, listener, progressUpdateIntervalMs, null);
+  }
+
+  public Job(String jobId, String jobName, JobListener listener, long progressUpdateIntervalMs,
+             String parentName) {
     this.jobName = jobName;
+    this.parentName = parentName;
     this.listener = listener;
     this.progressUpdateIntervalMs = progressUpdateIntervalMs;
 
@@ -115,7 +138,9 @@ public abstract class Job {
   public String getId() {
     return id;
   }
-
+  public String getParentName() {
+    return parentName;
+  }
   @Override
   public int hashCode() {
     return id.hashCode();
@@ -154,11 +179,16 @@ public abstract class Job {
   }
 
   public boolean isTerminated() {
-    return !this.status.isReady() && !this.status.isRunning() && !this.status.isPending();
+    return !this.status.isReady() && !this.status.isRunning() && !this.status.isPending()
+      && !this.status.isQueued();
   }
 
   public boolean isRunning() {
     return this.status.isRunning();
+  }
+
+  public boolean isQueued() {
+    return this.status.isQueued();
   }
 
   public void run() {

@@ -47,7 +47,7 @@ public class Paragraph extends Job implements Serializable, Cloneable {
   public final GUI settings;          // form and parameter settings
 
   public Paragraph(Note note, JobListener listener, NoteInterpreterLoader replLoader) {
-    super(generateId(), listener);
+    super(generateId(), listener, note.id());
     this.note = note;
     this.replLoader = replLoader;
     title = null;

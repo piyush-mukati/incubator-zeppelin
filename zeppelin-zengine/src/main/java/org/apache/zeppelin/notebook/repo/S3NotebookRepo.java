@@ -143,7 +143,8 @@ public class S3NotebookRepo implements NotebookRepo {
     Note note = gson.fromJson(json, Note.class);
 
     for (Paragraph p : note.getParagraphs()) {
-      if (p.getStatus() == Status.PENDING || p.getStatus() == Status.RUNNING) {
+      if (p.getStatus() == Status.PENDING || p.getStatus() == Status.RUNNING
+        || p.getStatus() == Status.QUEUED) {
         p.setStatus(Status.ABORT);
       }
     }

@@ -158,10 +158,11 @@ public class VFSNotebookRepo implements NotebookRepo {
 
     Note note = gson.fromJson(json, Note.class);
 //    note.setReplLoader(replLoader);
-//    note.jobListenerFactory = jobListenerFactory;
+//    note.jobListenerFactory = jobListenerFactory;J
 
     for (Paragraph p : note.getParagraphs()) {
-      if (p.getStatus() == Status.PENDING || p.getStatus() == Status.RUNNING) {
+      if (p.getStatus() == Status.PENDING || p.getStatus() == Status.RUNNING
+        || p.getStatus() == Status.QUEUED) {
         p.setStatus(Status.ABORT);
       }
     }

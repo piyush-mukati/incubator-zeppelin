@@ -191,7 +191,8 @@ public class RemoteScheduler implements Scheduler {
           continue;
         }
 
-        if (newStatus != Status.READY && newStatus != Status.PENDING) {
+        if (newStatus != Status.READY && newStatus != Status.PENDING
+          && newStatus != Status.QUEUED) {
           // we don't need more
           break;
         }
@@ -373,6 +374,8 @@ public class RemoteScheduler implements Scheduler {
           // so not updating the remoteStatus
           return;
         } else if (after == Status.RUNNING) {
+          jobSubmittedRemotely = true;
+        } else if (after == Status.QUEUED) {
           jobSubmittedRemotely = true;
         }
       } else {
