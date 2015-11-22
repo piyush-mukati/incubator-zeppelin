@@ -72,7 +72,6 @@ fi
 
 # set spark related env variables
 if [[ "${INTERPRETER_ID}" == "spark" ]]; then
-  JAVA_INTP_OPTS+=" -DCUSTOM_SPARK_REPL_DIR_PATH=/tmp/zeppelin_spark/"
   if [[ -n "${SPARK_HOME}" ]]; then
     export SPARK_SUBMIT="${SPARK_HOME}/bin/spark-submit"
     SPARK_APP_JAR="$(ls ${ZEPPELIN_HOME}/interpreter/spark/zeppelin-spark*.jar)"
