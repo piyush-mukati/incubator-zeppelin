@@ -80,7 +80,7 @@ if [[ "${INTERPRETER_ID}" == "spark" ]]; then
     JAVA_INTP_OPTS+=" -DCUSTOM_SPARK_REPL_DIR_PATH=/tmp/zeppelin_spark/
 
     export PYTHONPATH="$SPARK_HOME/python/:$PYTHONPATH"
-    export PYTHONPATH="$SPARK_HOME/python/lib/py4j-0.8.2.1-src.zip:$PYTHONPATH"    
+    export PYTHONPATH="$SPARK_HOME/python/lib/py4j-0.8.2.1-src.zip:$PYTHONPATH"
   else
     # add Hadoop jars into classpath
     if [[ -n "${HADOOP_HOME}" ]]; then
@@ -122,9 +122,9 @@ fi
 CLASSPATH+=":${ZEPPELIN_CLASSPATH}"
 
 if [[ -n "${SPARK_SUBMIT}" ]]; then
-    ${SPARK_SUBMIT} --class ${ZEPPELIN_SERVER} --driver-class-path "${CLASSPATH}" --driver-java-options "${JAVA_INTP_OPTS}" ${SPARK_SUBMIT_OPTIONS} ${SPARK_APP_JAR} ${PORT} &
+    ${SPARK_SUBMIT} --class ${ZEPPELIN_SERVER} --driver-class-path "${ZEPPELIN_CLASSPATH_OVERRIDES}:${CLASSPATH}" --driver-java-options "${JAVA_INTP_OPTS}" ${SPARK_SUBMIT_OPTIONS} ${SPARK_APP_JAR} ${PORT} &
 else
-    ${ZEPPELIN_RUNNER} ${JAVA_INTP_OPTS} -cp ${CLASSPATH} ${ZEPPELIN_SERVER} ${PORT} &
+    ${ZEPPELIN_RUNNER} ${JAVA_INTP_OPTS} -cp ${ZEPPELIN_CLASSPATH_OVERRIDES}:${CLASSPATH} ${ZEPPELIN_SERVER} ${PORT} &
 fi
 
 pid=$!
