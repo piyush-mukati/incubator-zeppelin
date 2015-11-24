@@ -142,7 +142,7 @@ public class SparkInterpreter extends Interpreter {
   private SQLContext sqlc;
   private LoadingCache<String, SparkInterpreterContext> sparkInterpreterContextMap;
     // it holds multiple interpreters to support multi user, key-> notebook Id
-  private DependencyResolver dep;
+
   private JobProgressListener sparkListener;
   private ConcurrentHashMap<String, ParagraphContext> paragraphContextMap;
 
@@ -214,6 +214,8 @@ public class SparkInterpreter extends Interpreter {
     @Getter
     private SparkJLineCompletion completor;
 
+    private DependencyResolver dep;
+
     private SparkEnv env;
 
     java.util.HashMap<String, Object> binder;
@@ -229,9 +231,17 @@ public class SparkInterpreter extends Interpreter {
         return ret;
       }
     }
+    public DependencyResolver getDependencyResolver() {
+      if (dep == null) {
+        dep = new DependencyResolver(intp,
+          sc,
+          getProperty("zeppelin.dep.localrepo"),
+          getProperty("zeppelin.dep.additionalRemoteRepository"));
+      }
+      return dep;
+    }
 
-
-    public void init() { // todo: send SparkContext as a parameter
+    public void init() {
 
       dep = getDependencyResolver();
       z = new ZeppelinContext(sc, sqlc, null, dep, printStream,
@@ -301,6 +311,9 @@ public class SparkInterpreter extends Interpreter {
     }
   }
 
+  public DependencyResolver getDependencyResolver() {
+    return initialSparkInterpreterContext.getDependencyResolver();
+  }
 
   private static class ParagraphContext {
     private final int totalLines;
@@ -1119,15 +1132,6 @@ public class SparkInterpreter extends Interpreter {
 
   }
 
-  public DependencyResolver getDependencyResolver() {
-    if (dep == null) {
-      dep = new DependencyResolver(initialSparkInterpreterContext.getIntp(),
-        sc,
-        getProperty("zeppelin.dep.localrepo"),
-        getProperty("zeppelin.dep.additionalRemoteRepository"));
-    }
-    return dep;
-  }
 
 
   @Override
