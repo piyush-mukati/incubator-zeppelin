@@ -1136,7 +1136,7 @@ public class SparkInterpreter extends Interpreter {
 
   @Override
   public Scheduler getScheduler() {
-    return SchedulerFactory.singleton().createOrGetParallelScheduler(
+    return SchedulerFactory.singleton().createOrGetParallelNotebookScheduler(
       SparkInterpreter.class.getName() + this.hashCode(), m_maxThreads);
   }
 
