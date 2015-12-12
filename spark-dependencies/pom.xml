@@ -36,7 +36,7 @@
   
 
   <properties>
-    <spark.version>1.4.2-fdp-ml</spark.version>
+    <spark.version>1.6.0-fdp-ml-SNAPSHOT</spark.version>
     <scala.version>2.10.4</scala.version>
     <scala.binary.version>2.10</scala.binary.version>
 
@@ -59,10 +59,18 @@
       <id>cloudera</id>
       <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
     </repository>
-    <repository>
+    <!--repository>
       <id>ops-build-0008</id>
       <name>ops-build-0008-releases</name>
       <url>http://artifactory.nm.flipkart.com:8081/artifactory/ext-release-local</url>
+    </repository-->
+    <repository>
+      <id>fdp-ml-spark-mvn-repo</id>
+      <url>https://raw.github.com/praagarw/fdp-ml-spark-mvn-repo/master/</url>
+      <snapshots>
+        <enabled>true</enabled>
+        <updatePolicy>always</updatePolicy>
+      </snapshots>
     </repository>
   </repositories>
 

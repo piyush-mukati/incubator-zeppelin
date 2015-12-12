@@ -121,7 +121,6 @@ public class SparkInterpreter extends Interpreter {
           "Max number of SparkSQL result to display.")
         .add("args", "", "spark commandline args").add("zeppelin.spark.outputStreamMaxSize", "1mb", "")
         .add("zeppelin.spark.maxThreads", "10", "").add("zeppelin.spark.InterpreterContexTTLHours", "24", "")
-        .add("zeppelin.spark.repl_classpath","/tmp/spark_repl_classpath/","")
         .build());
 
   }
@@ -134,7 +133,6 @@ public class SparkInterpreter extends Interpreter {
   static final String ZEPPELIN_SPARK_OUTPUT_MAX_SIZE = "zeppelin.spark.outputStreamMaxSize";
   static final String ZEPPELIN_SPARK_CONCURRENT_SESSIONS = "zeppelin.spark.maxThreads";
   static final String ZEPPELIN_SPARK_INTERPRETER_CONTEXT_TTL_HOURS = "zeppelin.spark.InterpreterContexTTLHours";
-  static final String SPARK_REPL_CLASS_PATH = "zeppelin.spark.repl_classpath";
 
   private SparkInterpreterContext initialSparkInterpreterContext;
   private Settings settings = null;
@@ -163,7 +161,7 @@ public class SparkInterpreter extends Interpreter {
 
   }
 
-  //todo :  if it's really used, then need to think..Or remove this function
+
   public SparkInterpreter(Properties property, SparkContext sc) {
     this(property);
     getConfigs(property);
@@ -607,27 +605,6 @@ public class SparkInterpreter extends Interpreter {
 
   @Override
   public void open() {
-
-    String classDirName = sparkReplClassPath;
-    if (classDirName != null && "" != classDirName) {
-      File classDir = new File(classDirName);
-      if (classDir.exists()) {
-        try {
-          FileUtils.deleteDirectory(classDir);
-        } catch (IOException e) {
-          logger.error("Not able to delete the classDir: " + classDir, e);
-
-        }
-      }
-      if (classDir.mkdirs()) {
-        logger.info("classDir " + classDir.getAbsolutePath() + " created");
-      }
-
-    } else {
-      logger.warn("property SPARK_REPL_CLASS_PATH is not set.");
-    }
-
-
     initialSparkInterpreterContext = new SparkInterpreterContext();
     sc = getSparkContext();
     sparkVersion = SparkVersion.fromVersionString(sc.version());
@@ -769,11 +746,18 @@ public class SparkInterpreter extends Interpreter {
       SparkInterpreterContext ic = null;
       ic = new SparkInterpreterContext();
       ic.init();
+      configureClassServer(ic);
+      configureOutputDir(ic);
+      return ic;
+    }
+  }
 
-      // setting the class server
+  private void configureClassServer(SparkInterpreterContext ic) {
+    // setting the class server
+    {
       Object classServer = null;
-      try { // for spark 1.3x
 
+      try {
         Method getclassServer = SparkIMain.class.getMethod("getClassServer");
         classServer = getclassServer.invoke(initialSparkInterpreterContext.getIntp());
       } catch (NoSuchMethodException | SecurityException | IllegalAccessException
@@ -783,7 +767,7 @@ public class SparkInterpreter extends Interpreter {
       }
       if (classServer != null) {
         try { // for spark 1.3x
-          Method setClassServer = SparkIMain.class.getMethod("setClassServer", org.apache.spark.HttpServer.class);
+          Method setClassServer = SparkIMain.class.getMethod("setClassServer", HttpServer.class);
           setClassServer.invoke(ic.getIntp(), classServer);
         } catch (NoSuchMethodException | SecurityException | IllegalAccessException
           | IllegalArgumentException | InvocationTargetException e) {
@@ -794,9 +778,32 @@ public class SparkInterpreter extends Interpreter {
       } else {
         logger.error(" classServer = null ! ");
       }
+    }
+  }
 
+  private void configureOutputDir(SparkInterpreterContext ic) {
+    Object outputDir = null;
 
-      return ic;
+    try {
+      Method getOutputDir = SparkIMain.class.getMethod("getOutputDir");
+      outputDir = getOutputDir.invoke(initialSparkInterpreterContext.getIntp());
+    } catch (NoSuchMethodException | SecurityException | IllegalAccessException
+      | IllegalArgumentException | InvocationTargetException e) {
+      logger.error("Not able to get the OutputDir from initialSparkInterpreterContext", e);
+      throw new InterpreterException(e);
+    }
+    if (outputDir != null) {
+      try { // for spark 1.3x
+        Method setOutputDir = SparkIMain.class.getMethod("setOutputDir", File.class);
+        setOutputDir.invoke(ic.getIntp(), outputDir);
+      } catch (NoSuchMethodException | SecurityException | IllegalAccessException
+        | IllegalArgumentException | InvocationTargetException e) {
+        logger.error("Not Able to set the OutputDir !! ", e);
+
+        throw new InterpreterException(e);
+      }
+    } else {
+      logger.error(" OutputDir = null ! ");
     }
   }
 
@@ -1199,18 +1206,6 @@ public class SparkInterpreter extends Interpreter {
         .error("error while getting value of " + ZEPPELIN_SPARK_OUTPUT_MAX_SIZE + " setting default value of 1048576",
           e);
       outputStreamMaxBytes = 1048576; // 1mb
-    }
-    try {
-      sparkReplClassPath = properties.getProperty(SPARK_REPL_CLASS_PATH, "/tmp/spark_repl_classpath/");
-      if(! sparkReplClassPath.endsWith("/"))sparkReplClassPath+="/";
-
-      logger.info("got value for " + SPARK_REPL_CLASS_PATH + " : " + sparkReplClassPath);
-    } catch (Exception e) {
-      logger
-        .error("error while getting value of " + SPARK_REPL_CLASS_PATH + " setting default value of "
-            + "/tmp/spark_repl_classpath/",
-          e);
-      sparkReplClassPath = "/tmp/spark_repl_classpath"; // 1mb
     }
 
   }

@@ -16,6 +16,7 @@
 #
 
 import sys, getopt, traceback
+from time import sleep
 
 from py4j.java_gateway import java_import, JavaGateway, GatewayClient
 from py4j.protocol import Py4JJavaError
@@ -78,44 +79,16 @@ class PyZeppelinContext(dict):
   def get(self, key):
     return self.__getitem__(key)
 
-  def input(self, name, defaultValue = ""):
-    return self.z.input(name, defaultValue)
-
-  def select(self, name, options, defaultValue = ""):
-    # auto_convert to ArrayList doesn't match the method signature on JVM side
-    tuples = map(lambda items: self.__tupleToScalaTuple2(items), options)
-    iterables = gateway.jvm.scala.collection.JavaConversions.collectionAsScalaIterable(tuples)
-    return self.z.select(name, defaultValue, iterables)
-
-  def __tupleToScalaTuple2(self, tuple):
-    if (len(tuple) == 2):
-      return gateway.jvm.scala.Tuple2(tuple[0], tuple[1])
-    else:
-      raise IndexError("options must be a list of tuple of 2")
-
-
-class SparkVersion(object):
-  SPARK_1_4_0 = 140
-  SPARK_1_3_0 = 130
-
-  def __init__(self, versionNumber):
-    self.version = versionNumber
-
-  def isAutoConvertEnabled(self):
-    return self.version >= self.SPARK_1_4_0
-
-  def isImportAllPackageUnderSparkSql(self):
-    return self.version >= self.SPARK_1_3_0
-
 
 output = Logger()
 sys.stdout = output
 sys.stderr = output
 
 client = GatewayClient(port=int(sys.argv[1]))
-sparkVersion = SparkVersion(int(sys.argv[2]))
+sparkVersion = sys.argv[2]
+noteID = sys.argv[3]
 
-if sparkVersion.isAutoConvertEnabled():
+if sparkVersion.startswith("1.4"):
   gateway = JavaGateway(client, auto_convert = True)
 else:
   gateway = JavaGateway(client)
@@ -127,18 +100,21 @@ java_import(gateway.jvm, "org.apache.spark.api.python.*")
 java_import(gateway.jvm, "org.apache.spark.mllib.api.python.*")
 
 intp = gateway.entry_point
-intp.onPythonScriptInitialized()
+intp.onPythonScriptInitialized(noteID)
 
 jsc = intp.getJavaSparkContext()
 
-if sparkVersion.isImportAllPackageUnderSparkSql():
-  java_import(gateway.jvm, "org.apache.spark.sql.*")
-  java_import(gateway.jvm, "org.apache.spark.sql.hive.*")
-else:
+if sparkVersion.startswith("1.2"):
   java_import(gateway.jvm, "org.apache.spark.sql.SQLContext")
   java_import(gateway.jvm, "org.apache.spark.sql.hive.HiveContext")
   java_import(gateway.jvm, "org.apache.spark.sql.hive.LocalHiveContext")
   java_import(gateway.jvm, "org.apache.spark.sql.hive.TestHiveContext")
+elif sparkVersion.startswith("1.3"):
+  java_import(gateway.jvm, "org.apache.spark.sql.*")
+  java_import(gateway.jvm, "org.apache.spark.sql.hive.*")
+elif sparkVersion.startswith("1.4"):
+  java_import(gateway.jvm, "org.apache.spark.sql.*")
+  java_import(gateway.jvm, "org.apache.spark.sql.hive.*")
 
 
 java_import(gateway.jvm, "scala.Tuple2")
@@ -149,10 +125,13 @@ sc = SparkContext(jsc=jsc, gateway=gateway, conf=conf)
 sqlc = SQLContext(sc, intp.getSQLContext())
 sqlContext = sqlc
 
-z = PyZeppelinContext(intp.getZeppelinContext())
+z = PyZeppelinContext(intp.getZeppelinContext(noteID))
 
 while True :
-  req = intp.getStatements()
+  req = intp.getStatements(noteID)
+  if req is None:
+    sleep(1)
+    continue
   try:
     stmts = req.statements().split("\n")
     jobGroup = req.jobGroup()
@@ -177,14 +156,14 @@ while True :
       sc.setJobGroup(jobGroup, "Zeppelin")
       eval(compiledCode)
 
-    intp.setStatementsFinished(output.get(), False)
+    intp.setStatementsFinished(noteID, output.get(), False)
   except Py4JJavaError:
     excInnerError = traceback.format_exc() # format_tb() does not return the inner exception
     innerErrorStart = excInnerError.find("Py4JJavaError:")
     if innerErrorStart > -1:
-       excInnerError = excInnerError[innerErrorStart:]
-    intp.setStatementsFinished(excInnerError + str(sys.exc_info()), True)
+      excInnerError = excInnerError[innerErrorStart:]
+    intp.setStatementsFinished(noteID, excInnerError + str(sys.exc_info()), True)
   except:
-    intp.setStatementsFinished(traceback.format_exc(), True)
+    intp.setStatementsFinished(noteID, traceback.format_exc(), True)
 
   output.reset()
