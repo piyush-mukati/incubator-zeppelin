@@ -59,11 +59,6 @@
       <id>cloudera</id>
       <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
     </repository>
-    <!--repository>
-      <id>ops-build-0008</id>
-      <name>ops-build-0008-releases</name>
-      <url>http://artifactory.nm.flipkart.com:8081/artifactory/ext-release-local</url>
-    </repository-->
     <repository>
       <id>fdp-ml-spark-mvn-repo</id>
       <url>https://raw.github.com/praagarw/fdp-ml-spark-mvn-repo/master/</url>
